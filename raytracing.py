@@ -6,13 +6,13 @@ import pylab
 
 nx = 200
 ny = 200
-scene = numpy.zeros((nx,ny,3), dtype=int)
+scene = numpy.zeros((nx,ny,3), dtype=numpy.uint8)
 
 # Sphere specification
 sphere = {}
 sphere["center"] = numpy.array([0,-1,3])
 sphere["radius"] = 1
-sphere["color"] = numpy.array([10,0,0])
+sphere["color"] = numpy.array([200,0,0], dtype=numpy.uint8)
 
 #sphere = {}
 #sphere["center"] = numpy.array([+-2,0,4])
@@ -31,7 +31,7 @@ def transform(px, py):
     y = (-px + 0.5 * nx) / nx * ly
     return numpy.array([x,y,d])
 
-background_color = numpy.array([1,1,1])
+background_color = numpy.array([255,255,255],dtype = numpy.uint8)
 def ray(center,direction,tmin,tmax):
     distance = center - sphere["center"]
     a = direction.dot(direction)
