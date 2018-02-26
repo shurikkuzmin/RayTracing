@@ -34,7 +34,7 @@ lights[0]["type"] = "ambient"
 lights[0]["intensity"] = 0.2
 
 lights[1]["type"] = "point" 
-lights[1]["intensity"] = 0.6
+lights[1]["intensity"] = 2.0
 lights[1]["position"] = numpy.array([2, 1, 0])
 
 lights[2]["type"] = "directional"
@@ -47,24 +47,25 @@ ly = 1.0
 d = 1.0
 
 # Coordinates of an eye
-center = numpy.array([0,0,0])
+eye = numpy.array([0,0,0])
 
 def transform(px, py):
-
     x = (py - 0.5 * ny) / ny * lx
     y = (-px + 0.5 * nx) / nx * ly
     return numpy.array([x,y,d])
 
 background_color = numpy.array([255,255,255],dtype = numpy.uint8)
+
+# Calculate ray and the color it hits
 def ray(center,direction,tmin,tmax):
     indclosest = -1
     tclosest = tmax
     for ind, sphere in enumerate(spheres):
         distance = center - sphere["center"]
-        a = direction.dot(direction)
+        a = numpy.dot(direction, direction)
         b = 2 * numpy.dot(direction, distance)
-        c = distance.dot(distance) - sphere["radius"]**2
-        discriminant = b**2 - 4*a*c
+        c = numpy.dot(distance, distance) - sphere["radius"]*sphere["radius"]
+        discriminant = b*b - 4*a*c
         if discriminant > 0:
             t1 = (-b - numpy.sqrt(discriminant))/(2*a)
             t2 = (-b + numpy.sqrt(discriminant))/(2*a)
@@ -75,15 +76,36 @@ def ray(center,direction,tmin,tmax):
                 tclosest = t2
                 indclosest = ind
 
-    if indclosest != -1:       
-        return spheres[indclosest]["color"]
+    if indclosest != -1:
+        sphere = spheres[indclosest]  
+        intersection = center + tclosest * direction     
+        normal = (intersection - sphere["center"]) / sphere["radius"]
+        return numpy.array(sphere["color"] * computeLight(intersection, normal), dtype = numpy.uint8)
     else:
         return background_color
 
+def computeLight(intersection, normal):
+    intensity = 0
+    for light in lights:
+        if light["type"] == "ambient":
+            intensity = intensity + light["intensity"]
+        elif light["type"] == "point":
+            direction = light["position"] - intersection
+            norm = numpy.dot(direction, direction)
+            if norm > 1e-6:
+                direction = direction / norm
+
+            cos = numpy.dot(direction, normal)
+            if cos > 0:
+                intensity = intensity + light["intensity"] * cos
+    if intensity > 1.0:
+        intensity = 1.0
+    return intensity 
+
 for i in range(nx):
    for j in range(ny):
-       direction = transform(i,j)
-       scene[i,j,:] = ray(center, direction, 1.0, 10000.0)
+       direction = transform(i,j) - eye
+       scene[i,j,:] = ray(eye, direction, 1.0, 10000.0)
 
-pylab.imshow(scene, interpolation='none')
+pylab.imshow(scene)
 pylab.show()
