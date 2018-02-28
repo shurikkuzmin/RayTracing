@@ -34,11 +34,11 @@ lights[0]["type"] = "ambient"
 lights[0]["intensity"] = 0.2
 
 lights[1]["type"] = "point" 
-lights[1]["intensity"] = 2.0
+lights[1]["intensity"] = 3.0
 lights[1]["position"] = numpy.array([2, 1, 0])
 
 lights[2]["type"] = "directional"
-lights[2]["intensity"] = 0.2
+lights[2]["intensity"] = 1.0
 lights[2]["direction"] = numpy.array([1, 4, 4])
 
 # Transformation of coordinates to the window
@@ -89,8 +89,11 @@ def computeLight(intersection, normal):
     for light in lights:
         if light["type"] == "ambient":
             intensity = intensity + light["intensity"]
-        elif light["type"] == "point":
-            direction = light["position"] - intersection
+        elif light["type"] == "point" or light["type"] == "directional":
+            if light["type"] == "point":
+                direction = light["position"] - intersection
+            else:
+                direction = -light["direction"]
             norm = numpy.dot(direction, direction)
             if norm > 1e-6:
                 direction = direction / norm
