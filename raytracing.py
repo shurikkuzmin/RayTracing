@@ -14,18 +14,22 @@ spheres = [{},{},{},{}]
 spheres[0]["center"] = numpy.array([0,-1,3])
 spheres[0]["radius"] = 1
 spheres[0]["color"] = numpy.array([255,0,0], dtype=numpy.uint8)
+spheres[0]["specular"] = 500
 
 spheres[1]["center"] = numpy.array([2,0,4])
 spheres[1]["radius"] = 1
 spheres[1]["color"] = numpy.array([0,255,0])
+spheres[1]["specular"] = 500
 
 spheres[2]["center"] = numpy.array([-2,0,4])
 spheres[2]["radius"] = 1
 spheres[2]["color"] = numpy.array([0,0,255])
+spheres[2]["specular"] = 10
 
 spheres[3]["center"] = numpy.array([0,-5001,0])
 spheres[3]["radius"] = 5000
 spheres[3]["color"] = numpy.array([255,255,0])
+spheres[3]["specular"] = 1000
 
 # Specification of lights
 lights = [{},{},{}]
@@ -34,11 +38,11 @@ lights[0]["type"] = "ambient"
 lights[0]["intensity"] = 0.2
 
 lights[1]["type"] = "point" 
-lights[1]["intensity"] = 3.0
+lights[1]["intensity"] = 0.6
 lights[1]["position"] = numpy.array([2, 1, 0])
 
 lights[2]["type"] = "directional"
-lights[2]["intensity"] = 1.0
+lights[2]["intensity"] = 0.2       
 lights[2]["direction"] = numpy.array([1, 4, 4])
 
 # Transformation of coordinates to the window
@@ -80,11 +84,12 @@ def ray(center,direction,tmin,tmax):
         sphere = spheres[indclosest]  
         intersection = center + tclosest * direction     
         normal = (intersection - sphere["center"]) / sphere["radius"]
-        return numpy.array(sphere["color"] * computeLight(intersection, normal), dtype = numpy.uint8)
+        specularity = sphere["specular"]
+        return numpy.array(sphere["color"] * computeLight(intersection, normal, specularity), dtype = numpy.uint8)
     else:
         return background_color
 
-def computeLight(intersection, normal):
+def computeLight(intersection, normal, specularity):
     intensity = 0
     for light in lights:
         if light["type"] == "ambient":
@@ -93,14 +98,24 @@ def computeLight(intersection, normal):
             if light["type"] == "point":
                 direction = light["position"] - intersection
             else:
-                direction = -light["direction"]
-            norm = numpy.dot(direction, direction)
+                direction = light["direction"]
+            norm = numpy.sqrt(numpy.dot(direction, direction))
             if norm > 1e-6:
                 direction = direction / norm
 
             cos = numpy.dot(direction, normal)
             if cos > 0:
                 intensity = intensity + light["intensity"] * cos
+
+                # Check the specular reflection
+                reflection = 2*normal*cos - direction
+                intersection2 = intersection
+                norm = numpy.sqrt(numpy.dot(intersection2, intersection2))
+                if norm > 1e-6:
+                    intersection2 = -intersection2/norm
+                cos2 = numpy.dot(intersection2, reflection)
+                if cos2 > 0:
+                    intensity = intensity + light["intensity"] * (cos2**specularity) 
     if intensity > 1.0:
         intensity = 1.0
     return intensity 
