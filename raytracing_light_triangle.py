@@ -115,7 +115,7 @@ def computeLight(eye, intersection, normal, specularity):
                     intersection2 = -intersection2/norm
                 cos2 = numpy.dot(intersection2, reflection)
                 if cos2 > 0:
-                    intensity = intensity + light["intensity"] * (cos2**specularity) 
+                    intensity = intensity + light["intensity"] * (1-numpy.abs(cos2)) 
     if intensity > 1.0:
         intensity = 1.0
     return intensity 
