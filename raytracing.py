@@ -61,11 +61,23 @@ def transform(px, py):
 background_color = numpy.array([255,255,255],dtype = numpy.uint8)
 
 # Calculate ray and the color it hits
-def ray(eye,direction,tmin,tmax):
+def ray(eye, direction, tmin, tmax):
+
+    indclosest, tclosest = closestIntersection(eye, direction, tmin, tmax)
+    if indclosest != -1:
+        sphere = spheres[indclosest]  
+        intersection = eye + tclosest * direction     
+        normal = (intersection - sphere["center"]) / sphere["radius"]
+        specularity = sphere["specular"]
+        return numpy.array(sphere["color"] * computeLight(eye, intersection, normal, specularity), dtype = numpy.uint8)
+    else:
+        return background_color
+
+def closestIntersection(point, direction, tmin, tmax):
     indclosest = -1
     tclosest = tmax
     for ind, sphere in enumerate(spheres):
-        distance = eye - sphere["center"]
+        distance = point - sphere["center"]
         a = numpy.dot(direction, direction)
         b = 2 * numpy.dot(direction, distance)
         c = numpy.dot(distance, distance) - sphere["radius"]*sphere["radius"]
@@ -79,15 +91,7 @@ def ray(eye,direction,tmin,tmax):
             elif t2 > tmin and t2 < tmax and t2 < tclosest:
                 tclosest = t2
                 indclosest = ind
-
-    if indclosest != -1:
-        sphere = spheres[indclosest]  
-        intersection = eye + tclosest * direction     
-        normal = (intersection - sphere["center"]) / sphere["radius"]
-        specularity = sphere["specular"]
-        return numpy.array(sphere["color"] * computeLight(eye, intersection, normal, specularity), dtype = numpy.uint8)
-    else:
-        return background_color
+    return indclosest, tclosest
 
 def computeLight(eye, intersection, normal, specularity):
     intensity = 0
@@ -97,8 +101,15 @@ def computeLight(eye, intersection, normal, specularity):
         elif light["type"] == "point" or light["type"] == "directional":
             if light["type"] == "point":
                 direction = light["position"] - intersection
+                tmax = 1.0
             else:
                 direction = light["direction"]
+                tmax = 10000.0
+
+            ind, t = closestIntersection(intersection, direction, 0.0001, tmax)
+            if ind != -1:
+                continue
+
             norm = numpy.sqrt(numpy.dot(direction, direction))
             if norm > 1e-6:
                 direction = direction / norm
@@ -109,10 +120,10 @@ def computeLight(eye, intersection, normal, specularity):
 
                 # Check the specular reflection
                 reflection = 2*normal*cos - direction
-                intersection2 = intersection - eye
+                intersection2 = eye - intersection
                 norm = numpy.sqrt(numpy.dot(intersection2, intersection2))
                 if norm > 1e-6:
-                    intersection2 = -intersection2/norm
+                    intersection2 = intersection2/norm
                 cos2 = numpy.dot(intersection2, reflection)
                 if cos2 > 0:
                     intensity = intensity + light["intensity"] * (cos2**specularity) 
