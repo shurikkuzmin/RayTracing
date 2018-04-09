@@ -15,21 +15,25 @@ spheres[0]["center"] = numpy.array([0,-1,3])
 spheres[0]["radius"] = 1
 spheres[0]["color"] = numpy.array([255,0,0], dtype=numpy.uint8)
 spheres[0]["specular"] = 100
+spheres[0]["reflective"] = 0.2
 
 spheres[1]["center"] = numpy.array([2,0,4])
 spheres[1]["radius"] = 1
 spheres[1]["color"] = numpy.array([0,255,0])
 spheres[1]["specular"] = 500
+spheres[1]["reflective"] = 0.3
 
 spheres[2]["center"] = numpy.array([-2,0,4])
 spheres[2]["radius"] = 1
 spheres[2]["color"] = numpy.array([0,0,255])
 spheres[2]["specular"] = 10
+spheres[2]["reflective"] = 0.4
 
 spheres[3]["center"] = numpy.array([0,-5001,0])
 spheres[3]["radius"] = 5000
 spheres[3]["color"] = numpy.array([255,255,0])
 spheres[3]["specular"] = 1000
+spheres[3]["reflective"] = 0.1
 
 # Specification of lights
 lights = [{},{},{}]
@@ -53,15 +57,20 @@ d = 1.0
 # Coordinates of an eye
 eye = numpy.array([0,0,0])
 
+# Recursion depth
+recursion_depth = 1
+
+# Background color
+background_color = numpy.array([0,0,0],dtype = numpy.uint8)
+
 def transform(px, py):
     x = (py - 0.5 * ny) / ny * lx
     y = (-px + 0.5 * nx) / nx * ly
     return numpy.array([x,y,d])
 
-background_color = numpy.array([255,255,255],dtype = numpy.uint8)
 
 # Calculate ray and the color it hits
-def ray(eye, direction, tmin, tmax):
+def ray(eye, direction, tmin, tmax, depth):
 
     indclosest, tclosest = closestIntersection(eye, direction, tmin, tmax)
     if indclosest != -1:
@@ -69,9 +78,17 @@ def ray(eye, direction, tmin, tmax):
         intersection = eye + tclosest * direction     
         normal = (intersection - sphere["center"]) / sphere["radius"]
         specularity = sphere["specular"]
-        return numpy.array(sphere["color"] * computeLight(eye, intersection, normal, specularity), dtype = numpy.uint8)
-    else:
-        return background_color
+        reflectivity = sphere["reflective"]
+
+        local_color = numpy.array(sphere["color"] * computeLight(eye, intersection, normal, specularity), dtype = numpy.uint8)
+        if (depth <= 0) or (reflectivity <=0):
+            return local_color
+        else:
+            reflected_direction = -2*normal*numpy.dot(direction, normal) + direction
+
+            reflected_color = ray(intersection, reflected_direction, 0.0001, tmax, depth - 1)
+            return local_color * (1 - reflectivity) + reflectivity * reflected_color
+    return background_color
 
 def closestIntersection(point, direction, tmin, tmax):
     indclosest = -1
@@ -134,7 +151,7 @@ def computeLight(eye, intersection, normal, specularity):
 for i in range(nx):
    for j in range(ny):
        direction = transform(i,j) - eye
-       scene[i,j,:] = ray(eye, direction, 1.0, 10000.0)
+       scene[i,j,:] = ray(eye, direction, 1.0, 10000.0, recursion_depth)
 
 pylab.imshow(scene)
 pylab.show()
