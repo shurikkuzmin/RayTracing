@@ -137,6 +137,7 @@ def ray(eye, direction, tmin, tmax, depth):
                     transmissed_color = ray(intersection, transmissed_direction, 0.0001, tmax, depth - 1)
                 else:
                     # Going out
+                    #if numpy.sqrt(1.0-(numpy.dot(direction, normal)/dir_abs)**2)*refraction < 1.0:
                     transmissed_direction = dir_normal + dir_tau * refraction
                     transmissed_color = ray(intersection, transmissed_direction, 0.0001, tmax, depth - 1)
             return local_color * (1 - reflectivity - transmissivity) + reflectivity * reflected_color + transmissivity * transmissed_color
